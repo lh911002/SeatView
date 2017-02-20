@@ -15,6 +15,7 @@ import android.util.AttributeSet;
 import android.view.GestureDetector;
 import android.view.MotionEvent;
 import android.view.View;
+import android.view.ViewTreeObserver;
 
 import java.math.BigDecimal;
 import java.util.HashMap;
@@ -29,8 +30,8 @@ import io.github.lh911002.seatview.R;
 public class SeatView extends View {
 
 
-    private SeatImages seatImages = null;
-    private SeatViewConfig seatViewConfig = null;
+    private SeatImages mSeatImages = null;
+    private SeatViewConfig mSeatViewConfig = null;
 
 
     private Paint commonPaint = new Paint();
@@ -47,7 +48,7 @@ public class SeatView extends View {
     private boolean fingerOnScreen = false;
 
     private ISeatListener seatClickListener;
-    private String screenName = "";
+    private String mScreenName = "";
     private HashMap<String, Seat> submitSeats = new HashMap<>();
 
 
@@ -64,12 +65,21 @@ public class SeatView extends View {
     }
 
 
-    public void initSeatView(String screenName, SeatImages seatImages, List<SeatRow> seatMap) {
-        this.screenName = screenName;
-        this.seatImages = seatImages;
-        seatViewConfig = new SeatViewConfig(getContext(), seatMap, getMeasuredHeight(),
-                getMeasuredWidth());
-        initPaint();
+    public void initSeatView(final String screenName, final SeatImages seatImages, final List<SeatRow> seatMap) {
+
+        ViewTreeObserver vto = getViewTreeObserver();
+        vto.addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
+            @Override
+            public void onGlobalLayout() {
+                mScreenName = screenName;
+                mSeatImages = seatImages;
+                mSeatViewConfig = new SeatViewConfig(getContext(), seatMap, getMeasuredHeight(),
+                        getMeasuredWidth());
+                initPaint();
+                getViewTreeObserver().removeOnGlobalLayoutListener(this);
+            }
+        });
+
     }
 
 
@@ -89,13 +99,13 @@ public class SeatView extends View {
         rowNumPaint.setColor(Color.WHITE);
         rowNumPaint.setTextAlign(Paint.Align.CENTER);
         rowNumPaint.setAntiAlias(true);
-        rowNumPaint.setTextSize(seatViewConfig.barTextSize);
+        rowNumPaint.setTextSize(mSeatViewConfig.barTextSize);
 
 
         centerTextPaint.setColor(Color.parseColor("#202020"));
         centerTextPaint.setTextAlign(Paint.Align.CENTER);
         centerTextPaint.setAntiAlias(true);
-        centerTextPaint.setTextSize(seatViewConfig.centerTextSize);
+        centerTextPaint.setTextSize(mSeatViewConfig.centerTextSize);
 
 
         centerLinePaint.setStyle(Paint.Style.STROKE);
@@ -110,7 +120,7 @@ public class SeatView extends View {
     @Override
     protected void onDraw(Canvas canvas) {
         super.onDraw(canvas);
-        if (seatViewConfig == null || seatViewConfig.rowCount == 0) return;
+        if (mSeatViewConfig == null || mSeatViewConfig.rowCount == 0) return;
         canvas.drawColor(getResources().getColor(R.color.seat_view_bg));
         drawSeat(canvas);
         drawScreen(canvas);
@@ -121,27 +131,27 @@ public class SeatView extends View {
 
 
     private void drawSeat(Canvas canvas) {
-        for (int rowIndex = 0; rowIndex < seatViewConfig.rowCount; rowIndex++) {
-            for (int columnIndex = 0; columnIndex < seatViewConfig.columnCount; columnIndex++) {
-                RectF seatRectF = seatViewConfig.getSeatRect(rowIndex, columnIndex);
+        for (int rowIndex = 0; rowIndex < mSeatViewConfig.rowCount; rowIndex++) {
+            for (int columnIndex = 0; columnIndex < mSeatViewConfig.columnCount; columnIndex++) {
+                RectF seatRectF = mSeatViewConfig.getSeatRect(rowIndex, columnIndex);
                 /*优化重绘效率*/
-                if (seatRectF.right < seatViewConfig.windowRectF.left || seatRectF.left >
-                        seatViewConfig.windowRectF.right || seatRectF.top > seatViewConfig
-                        .windowRectF.bottom || seatRectF.bottom < seatViewConfig.windowRectF.top)
+                if (seatRectF.right < mSeatViewConfig.windowRectF.left || seatRectF.left >
+                        mSeatViewConfig.windowRectF.right || seatRectF.top > mSeatViewConfig
+                        .windowRectF.bottom || seatRectF.bottom < mSeatViewConfig.windowRectF.top)
                     continue;
 
-                Seat seatBean = seatViewConfig.seatArray[rowIndex][columnIndex];
+                Seat seatBean = mSeatViewConfig.seatArray[rowIndex][columnIndex];
                 int seatStatus = seatBean.status;
                 Bitmap drawBitmap = null;
                 switch (seatStatus) {
                     case Seat.STATUS.SELECTABLE://可选
-                        drawBitmap = seatImages.bgSeatAvail;
+                        drawBitmap = mSeatImages.bgSeatAvail;
                         break;
                     case Seat.STATUS.SELECTED://已选
-                        drawBitmap = seatImages.bgSeatSelected;
+                        drawBitmap = mSeatImages.bgSeatSelected;
                         break;
                     case Seat.STATUS.UNSELECTABLE://已售
-                        drawBitmap = seatImages.bgSeatLocked;
+                        drawBitmap = mSeatImages.bgSeatLocked;
                         break;
                 }
                 if (drawBitmap != null) canvas.drawBitmap(drawBitmap, null, seatRectF, commonPaint);
@@ -151,12 +161,12 @@ public class SeatView extends View {
 
     private void drawLeftBar(Canvas canvas) {
         /*draw bg*/
-        canvas.drawRoundRect(seatViewConfig.getLeftBarRect(), seatViewConfig.barWidth / 2,
-                seatViewConfig.barWidth / 2, leftBarBgPaint);
+        canvas.drawRoundRect(mSeatViewConfig.getLeftBarRect(), mSeatViewConfig.barWidth / 2,
+                mSeatViewConfig.barWidth / 2, leftBarBgPaint);
         /*draw num*/
-        for (int rowIndex = 0; rowIndex < seatViewConfig.rowCount; rowIndex++) {
-            RectF rowNumRect = seatViewConfig.getRowNumRect(rowIndex);
-            String rowNum = seatViewConfig.rowNames[rowIndex];
+        for (int rowIndex = 0; rowIndex < mSeatViewConfig.rowCount; rowIndex++) {
+            RectF rowNumRect = mSeatViewConfig.getRowNumRect(rowIndex);
+            String rowNum = mSeatViewConfig.rowNames[rowIndex];
             if (!TextUtils.isEmpty(rowNum))
                 canvas.drawText(rowNum, rowNumRect.centerX(), rowNumRect.centerY(), rowNumPaint);
         }
@@ -164,13 +174,13 @@ public class SeatView extends View {
 
     private void drawScreen(Canvas canvas) {
 
-        canvas.drawPath(seatViewConfig.getScreenPath(), screenPaint);
+        canvas.drawPath(mSeatViewConfig.getScreenPath(), screenPaint);
     }
 
     private void drawCenterLine(Canvas canvas) {
-        Path linePath = seatViewConfig.getCenterLinePath();
+        Path linePath = mSeatViewConfig.getCenterLinePath();
         canvas.drawPath(linePath, centerLinePaint);
-        canvas.drawText(screenName + "  银幕", seatViewConfig.getScreenCenterX(), seatViewConfig
+        canvas.drawText(mScreenName + "  银幕", mSeatViewConfig.getScreenCenterX(), mSeatViewConfig
                 .screenHeight / 2 + centerTextPaint.getTextSize() / 2 - 4, centerTextPaint);
 
     }
@@ -186,9 +196,9 @@ public class SeatView extends View {
             double fingerDistance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
 
             if (lastFingerDistance != Integer.MAX_VALUE && scaleCenterX != Float.MAX_VALUE) {
-                double newSeatWidth = seatViewConfig.seatWidth + (fingerDistance -
+                double newSeatWidth = mSeatViewConfig.seatWidth + (fingerDistance -
                         lastFingerDistance) / 6d;
-                seatViewConfig.setSeatWidth(new BigDecimal(newSeatWidth).floatValue(),
+                mSeatViewConfig.setSeatWidth(new BigDecimal(newSeatWidth).floatValue(),
                         scaleCenterX, scaleCenterY);
                 invalidate();
             }
@@ -229,8 +239,8 @@ public class SeatView extends View {
             GestureDetector.SimpleOnGestureListener() {
         @Override
         public boolean onScroll(MotionEvent e1, MotionEvent e2, float distanceX, float distanceY) {
-            if (seatViewConfig != null) {
-                seatViewConfig.moveSeatView((int) distanceX, (int) distanceY);
+            if (mSeatViewConfig != null) {
+                mSeatViewConfig.moveSeatView((int) distanceX, (int) distanceY);
             }
             invalidate();
             return true;
@@ -248,11 +258,11 @@ public class SeatView extends View {
 
         @Override
         public boolean onSingleTapUp(MotionEvent event) {
-            int[] clickedPosition = seatViewConfig.getClickedSeat(event.getX(), event.getY());
+            int[] clickedPosition = mSeatViewConfig.getClickedSeat(event.getX(), event.getY());
             if (clickedPosition != null && lastFingerDistance == Integer.MAX_VALUE) {
                 int rowIndex = clickedPosition[0];
                 int columnIndex = clickedPosition[1];
-                Seat clickedSeat = seatViewConfig.seatArray[rowIndex][columnIndex];
+                Seat clickedSeat = mSeatViewConfig.seatArray[rowIndex][columnIndex];
                 if (clickedSeat != null) {
                     checkOrUnCheckSeat(clickedSeat);
                 }
@@ -262,7 +272,7 @@ public class SeatView extends View {
             }
 
 
-            if (seatViewConfig.seatWidth < seatViewConfig.seatMaxWidth && lastFingerDistance ==
+            if (mSeatViewConfig.seatWidth < mSeatViewConfig.seatMaxWidth && lastFingerDistance ==
                     Integer.MAX_VALUE) {
                 final float x = event.getX();
                 final float y = event.getY();
@@ -270,12 +280,12 @@ public class SeatView extends View {
                 postDelayed(new Runnable() {
                     @Override
                     public void run() {
-                        float newSeatWidth = seatViewConfig.seatWidth + 8;
-                        newSeatWidth = Math.min(newSeatWidth, seatViewConfig.seatMaxWidth);
+                        float newSeatWidth = mSeatViewConfig.seatWidth + 8;
+                        newSeatWidth = Math.min(newSeatWidth, mSeatViewConfig.seatMaxWidth);
 
-                        seatViewConfig.setSeatWidth(newSeatWidth, x, y);
+                        mSeatViewConfig.setSeatWidth(newSeatWidth, x, y);
                         invalidate();
-                        if (newSeatWidth >= seatViewConfig.seatMaxWidth) return;
+                        if (newSeatWidth >= mSeatViewConfig.seatMaxWidth) return;
                         postDelayed(this, 10);
                     }
                 }, 20);
@@ -329,14 +339,14 @@ public class SeatView extends View {
     }
 
     private RectF getVisibleThumbRect(float thumbWidth, float thumbHeight) {
-        float left = -seatViewConfig.xOffset / seatViewConfig.virtualWidth * thumbWidth;
+        float left = -mSeatViewConfig.xOffset / mSeatViewConfig.virtualWidth * thumbWidth;
         left = Math.max(left, 0);
-        float top = -seatViewConfig.yOffset / seatViewConfig.virtualHeight * thumbHeight;
+        float top = -mSeatViewConfig.yOffset / mSeatViewConfig.virtualHeight * thumbHeight;
         top = Math.max(top, 0);
 
-        float height = thumbHeight * seatViewConfig.windowHeight / seatViewConfig.virtualHeight;
+        float height = thumbHeight * mSeatViewConfig.windowHeight / mSeatViewConfig.virtualHeight;
         height = Math.min(height, thumbHeight - top);
-        float width = thumbWidth * seatViewConfig.windowWidth / seatViewConfig.virtualWidth;
+        float width = thumbWidth * mSeatViewConfig.windowWidth / mSeatViewConfig.virtualWidth;
         width = Math.min(width, thumbWidth - left);
 
         float bottom = top + height;
@@ -347,36 +357,36 @@ public class SeatView extends View {
 
     private void drawThumbSeatView(Canvas canvas) {
         if (!fingerOnScreen) return;
-        if (seatViewConfig.THUMB_HEIGHT <= 0 || seatViewConfig.THUMB_WIDTH <= 0) {
+        if (mSeatViewConfig.THUMB_HEIGHT <= 0 || mSeatViewConfig.THUMB_WIDTH <= 0) {
             return;
         }
 
         thumbSeatViewPaint.setColor(Color.parseColor("#B0000000"));
         thumbSeatViewPaint.setStyle(Paint.Style.FILL);
-        canvas.drawRect(0, 0, seatViewConfig.THUMB_WIDTH, seatViewConfig.THUMB_HEIGHT,
+        canvas.drawRect(0, 0, mSeatViewConfig.THUMB_WIDTH, mSeatViewConfig.THUMB_HEIGHT,
                 thumbSeatViewPaint);
 
-        for (int rowIndex = 0; rowIndex < seatViewConfig.rowCount; rowIndex++) {
-            for (int columnIndex = 0; columnIndex < seatViewConfig.columnCount; columnIndex++) {
-                Seat seatBean = seatViewConfig.seatArray[rowIndex][columnIndex];
+        for (int rowIndex = 0; rowIndex < mSeatViewConfig.rowCount; rowIndex++) {
+            for (int columnIndex = 0; columnIndex < mSeatViewConfig.columnCount; columnIndex++) {
+                Seat seatBean = mSeatViewConfig.seatArray[rowIndex][columnIndex];
                 int seatStatus = seatBean.status;
                 Bitmap drawBitmap = null;
                 switch (seatStatus) {
                     case Seat.STATUS.SELECTABLE:
-                        drawBitmap = seatImages.bgSeatAvail;
+                        drawBitmap = mSeatImages.bgSeatAvail;
 
                         break;
                     case Seat.STATUS.SELECTED:
-                        drawBitmap = seatImages.bgSeatSelected;
+                        drawBitmap = mSeatImages.bgSeatSelected;
                         break;
                     case Seat.STATUS.UNSELECTABLE:
-                        drawBitmap = seatImages.bgSeatLocked;
+                        drawBitmap = mSeatImages.bgSeatLocked;
                         break;
                 }
                 if (drawBitmap != null)
-                    canvas.drawBitmap(drawBitmap, null, getThumbSeatRect(seatViewConfig
-                            .THUMB_SEAT_WIDTH, seatViewConfig.THUMB_SEAT_HEIGHT, seatViewConfig
-                            .THUMB_GAP_INLINE, seatViewConfig.THUMB_GAP_NEWLINE, seatViewConfig
+                    canvas.drawBitmap(drawBitmap, null, getThumbSeatRect(mSeatViewConfig
+                            .THUMB_SEAT_WIDTH, mSeatViewConfig.THUMB_SEAT_HEIGHT, mSeatViewConfig
+                            .THUMB_GAP_INLINE, mSeatViewConfig.THUMB_GAP_NEWLINE, mSeatViewConfig
                             .THUMB_PADDING, rowIndex, columnIndex), commonPaint);
             }
         }
@@ -384,7 +394,7 @@ public class SeatView extends View {
         thumbSeatViewPaint.setStyle(Paint.Style.STROKE);
         thumbSeatViewPaint.setStrokeWidth(3);
         thumbSeatViewPaint.setColor(Color.YELLOW);
-        canvas.drawRect(getVisibleThumbRect(seatViewConfig.THUMB_WIDTH, seatViewConfig
+        canvas.drawRect(getVisibleThumbRect(mSeatViewConfig.THUMB_WIDTH, mSeatViewConfig
                 .THUMB_HEIGHT), thumbSeatViewPaint);
     }
 

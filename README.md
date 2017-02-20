@@ -21,16 +21,6 @@
 
 ```java
 this.select_seat_view = (SeatView) findViewById(R.id.select_seat_view);
-this.select_seat_view.setSeatClickListener(this);
-
-
-ViewTreeObserver vto = this.select_seat_view.getViewTreeObserver();
-vto.addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
-    @Override
-    public void onGlobalLayout() {
-        select_seat_view.initSeatView("Github", new SeatImages(getResources()),querySeatMap());
-        select_seat_view.getViewTreeObserver().removeOnGlobalLayoutListener(this);
-
-    }
-});
+        this.select_seat_view.setSeatClickListener(this);
+        this.select_seat_view.initSeatView("Github", new SeatImages(getResources()),querySeatMap());
 ```
