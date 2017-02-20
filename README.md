@@ -12,15 +12,15 @@
 
 ```xml
 <io.github.lh911002.seatview.seat.SeatView
-        android:id="@+id/select_seat_view"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"/>
+    android:id="@+id/select_seat_view"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"/>
 ```
 
 #### 初始化代码
 
 ```java
 this.select_seat_view = (SeatView) findViewById(R.id.select_seat_view);
-        this.select_seat_view.setSeatClickListener(this);
-        this.select_seat_view.initSeatView("Github", new SeatImages(getResources()),querySeatMap());
+this.select_seat_view.setSeatClickListener(this);
+this.select_seat_view.initSeatView("Github", new SeatImages(getResources()),querySeatMap());
 ```
